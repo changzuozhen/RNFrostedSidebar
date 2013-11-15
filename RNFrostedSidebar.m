@@ -104,11 +104,17 @@
         if (hasSaturationChange) {
             CGFloat s = saturationDeltaFactor;
             CGFloat floatingPointSaturationMatrix[] = {
-                0.0722 + 0.9278 * s,  0.0722 - 0.0722 * s,  0.0722 - 0.0722 * s,  0,
-                0.7152 - 0.7152 * s,  0.7152 + 0.2848 * s,  0.7152 - 0.7152 * s,  0,
-                0.2126 - 0.2126 * s,  0.2126 - 0.2126 * s,  0.2126 + 0.7873 * s,  0,
+                static_cast<CGFloat>(0.0722 + 0.9278 * s),  static_cast<CGFloat>(0.0722 - 0.0722 * s),  static_cast<CGFloat>(0.0722 - 0.0722 * s),  0,
+                static_cast<CGFloat>(0.7152 - 0.7152 * s),  static_cast<CGFloat>(0.7152 + 0.2848 * s),  static_cast<CGFloat>(0.7152 - 0.7152 * s),  0,
+                static_cast<CGFloat>(0.2126 - 0.2126 * s),  static_cast<CGFloat>(0.2126 - 0.2126 * s),  static_cast<CGFloat>(0.2126 + 0.7873 * s),  0,
                 0,                    0,                    0,  1,
             };
+//            CGFloat floatingPointSaturationMatrix[] = {
+//                0.0722 + 0.9278 * s,  0.0722 - 0.0722 * s,  0.0722 - 0.0722 * s,  0,
+//                0.7152 - 0.7152 * s,  0.7152 + 0.2848 * s,  0.7152 - 0.7152 * s,  0,
+//                0.2126 - 0.2126 * s,  0.2126 - 0.2126 * s,  0.2126 + 0.7873 * s,  0,
+//                0,                    0,                    0,  1,
+//            };
             const int32_t divisor = 256;
             NSUInteger matrixSize = sizeof(floatingPointSaturationMatrix)/sizeof(floatingPointSaturationMatrix[0]);
             int16_t saturationMatrix[matrixSize];
@@ -175,7 +181,7 @@
 @property (nonatomic, strong) UIImageView *imageView;
 @property (nonatomic, assign) NSInteger itemIndex;
 @property (nonatomic, strong) UIColor *originalBackgroundColor;
-
+@property (nonatomic, strong) UILabel * label;
 @end
 
 @implementation RNCalloutItemView
@@ -185,7 +191,12 @@
         _imageView = [[UIImageView alloc] init];
         _imageView.backgroundColor = [UIColor clearColor];
         _imageView.contentMode = UIViewContentModeScaleAspectFit;
+        _label = [[UILabel alloc] init];
+        [_label setTextColor:[UIColor blueColor]];
+        [_label setBackgroundColor:[UIColor clearColor]];
+        [_label setTextAlignment:NSTextAlignmentCenter];
         [self addSubview:_imageView];
+        [self addSubview:_label];
     }
     return self;
 }
@@ -196,6 +207,8 @@
     CGFloat inset = self.bounds.size.height/2;
     self.imageView.frame = CGRectMake(0, 0, inset, inset);
     self.imageView.center = CGPointMake(inset, inset);
+    self.label.frame = CGRectMake(0, 0, inset, inset/2.0);
+    self.label.center = CGPointMake(inset, inset*1.75);
 }
 
 - (void)setOriginalBackgroundColor:(UIColor *)originalBackgroundColor {
@@ -241,6 +254,7 @@
 @property (nonatomic, strong) UIImageView *blurView;
 @property (nonatomic, strong) UITapGestureRecognizer *tapGesture;
 @property (nonatomic, strong) NSArray *images;
+@property (nonatomic, strong) NSArray *texts;
 @property (nonatomic, strong) NSArray *borderColors;
 @property (nonatomic, strong) NSMutableArray *itemViews;
 @property (nonatomic, strong) NSMutableIndexSet *selectedIndices;
@@ -281,12 +295,12 @@ static RNFrostedSidebar *rn_frostedMenu;
         _selectedIndices = [selectedIndices mutableCopy] ?: [NSMutableIndexSet indexSet];
         _borderColors = colors;
         _images = images;
-        
         [_images enumerateObjectsUsingBlock:^(UIImage *image, NSUInteger idx, BOOL *stop) {
             RNCalloutItemView *view = [[RNCalloutItemView alloc] init];
             view.itemIndex = idx;
             view.clipsToBounds = YES;
             view.imageView.image = image;
+            view.label.text = @"test";
             [_contentView addSubview:view];
             
             [_itemViews addObject:view];
@@ -302,11 +316,63 @@ static RNFrostedSidebar *rn_frostedMenu;
     }
     return self;
 }
-
+- (instancetype)initWithImages:(NSArray *)images selectedIndices:(NSIndexSet *)selectedIndices borderColors:(NSArray *)colors texts:(NSArray *)texts{
+    if (self = [super init]) {
+        _isSingleSelect = NO;
+        _contentView = [[UIScrollView alloc] init];
+        _contentView.alwaysBounceHorizontal = NO;
+        _contentView.alwaysBounceVertical = YES;
+        _contentView.bounces = YES;
+        _contentView.clipsToBounds = NO;
+        _contentView.showsHorizontalScrollIndicator = NO;
+        _contentView.showsVerticalScrollIndicator = NO;
+        
+        _width = 150;
+        _animationDuration = 0.25f;
+        _itemSize = CGSizeMake(_width/2, _width/2);
+        _itemViews = [NSMutableArray array];
+        _tintColor = [UIColor colorWithWhite:0.2 alpha:0.73];
+        _borderWidth = 2;
+        _itemBackgroundColor = [UIColor colorWithRed:1 green:1 blue:1 alpha:0.25];
+        
+        if (colors) {
+            NSAssert([colors count] == [images count], @"Border color count must match images count. If you want a blank border, use [UIColor clearColor].");
+        }
+        
+        _selectedIndices = [selectedIndices mutableCopy] ?: [NSMutableIndexSet indexSet];
+        _borderColors = colors;
+        _images = images;
+        _texts = texts;
+        [_images enumerateObjectsUsingBlock:^(UIImage *image, NSUInteger idx, BOOL *stop) {
+            RNCalloutItemView *view = [[RNCalloutItemView alloc] init];
+            view.itemIndex = idx;
+            view.clipsToBounds = YES;
+            view.imageView.image = image;
+            NSLog(@"text[%d]:%@",idx,texts[idx]);
+            view.label.text = texts[idx];
+            
+            [_contentView addSubview:view];
+            
+            [_itemViews addObject:view];
+            
+            if (_borderColors && _selectedIndices && [_selectedIndices containsIndex:idx]) {
+                UIColor *color = _borderColors[idx];
+                view.layer.borderColor = color.CGColor;
+            }
+            else {
+                view.layer.borderColor = [UIColor clearColor].CGColor;
+            }
+        }];
+    }
+    return self;
+}
 - (instancetype)initWithImages:(NSArray *)images selectedIndices:(NSIndexSet *)selectedIndices {
     return [self initWithImages:images selectedIndices:selectedIndices borderColors:nil];
 }
+- (instancetype)initWithImages:(NSArray *)images selectedIndices:(NSIndexSet *)selectedIndices texts:(NSArray *)texts{
 
+    return [self initWithImages:images selectedIndices:selectedIndices borderColors:nil texts:texts];
+}
 - (instancetype)initWithImages:(NSArray *)images {
     return [self initWithImages:images selectedIndices:nil borderColors:nil];
 }

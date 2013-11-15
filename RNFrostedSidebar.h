@@ -67,9 +67,11 @@
 @property (nonatomic, weak) id <RNFrostedSidebarDelegate> delegate;
 
 - (instancetype)initWithImages:(NSArray *)images selectedIndices:(NSIndexSet *)selectedIndices borderColors:(NSArray *)colors;
+- (instancetype)initWithImages:(NSArray *)images selectedIndices:(NSIndexSet *)selectedIndices borderColors:(NSArray *)colors texts:(NSArray *)texts;
 - (instancetype)initWithImages:(NSArray *)images selectedIndices:(NSIndexSet *)selectedIndices;
-- (instancetype)initWithImages:(NSArray *)images;
+- (instancetype)initWithImages:(NSArray *)images selectedIndices:(NSIndexSet *)selectedIndices texts:(NSArray *)texts;
 
+- (instancetype)initWithImages:(NSArray *)images;
 - (void)show;
 - (void)showAnimated:(BOOL)animated;
 - (void)showInViewController:(UIViewController *)controller animated:(BOOL)animated;
